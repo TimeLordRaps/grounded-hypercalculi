@@ -24,27 +24,28 @@ A unified formal framework and computational library implementing extended mathe
    - Canonical permutation representations and composition (`Permutation`).
    - Finite permutation groups, closure generation, group order, and action orbits (`PermutationGroup`).
    - Linear derivation operators on functional spaces satisfying the Leibniz product rule (`DerivationOperator.leibniz_check`).
-   - Lie commutator brackets $[D_1, D_2] = D_1 \circ D_2 - D_2 \circ D_1$ preserving semantic Noether invariants (`commutator_bracket`).
+   - Lie commutator brackets preserving semantic Noether invariants (`commutator_bracket`):
+     $$[D_1, D_2] = D_1 \circ D_2 - D_2 \circ D_1$$
 
 4. **Ordinal Calculus** (`ordinal_calculus.py`):
    - Exact transfinite arithmetic below $\omega^\omega$ in Cantor Normal Form (`BoundedOrdinal`, `OMEGA`, `ZERO`, `ONE`).
-   - Exact left subtraction ($\beta + \gamma = \alpha \implies \gamma = \alpha.\mathrm{left\_sub}(\beta)$).
+   - Exact left subtraction $\beta + \gamma = \alpha \implies \gamma = \alpha - \beta$ (`alpha.left_sub(beta)`).
    - Discrete difference operators $\Delta F(\alpha) = F(\alpha + 1) - F(\alpha)$ (`ordinal_difference`).
    - Ordinal derivative fixed-point enumeration (`ordinal_derivative`) failing closed on non-convergent stages.
-   - Veblen hierarchies $\phi_\alpha(\beta)$ (`VeblenHierarchy`).
+   - Veblen hierarchies $\varphi_\alpha(\beta)$ (`VeblenHierarchy`).
 
 5. **Real Analysis Calculus** (`real_calculus.py`):
    - Exact grounded rational arithmetic with ordering and division (`GroundedRational`).
-   - Dedekind cuts ($L, R$) of rationals with containment testing and constants (`DedekindCut.sqrt_two`).
-   - Conway Surreal numbers $\{L | R\}$ supporting transfinite numbers and canonical infinitesimals $\epsilon = 1/\omega$ (`SurrealGame`, `SurrealGame.infinitesimal`), with strict numeric validation.
+   - Dedekind cuts $(L, R)$ of rationals with containment testing and constants (`DedekindCut.sqrt_two`).
+   - Conway Surreal numbers $\{L \mid R\}$ supporting transfinite numbers and canonical infinitesimals $\epsilon = 1/\omega$ (`SurrealGame`, `SurrealGame.infinitesimal`), with strict numeric validation.
    - Cauchy sequences of rationals generating the continuum with convergence checks and canonical limits (`CauchySequence.euler_e`, `CauchySequence.geometric_series`).
    - Central difference numerical derivatives (`numerical_derivative`) and Riemann midpoint integration (`riemann_integral`).
 
 6. **Oracle Calculus** (`oracle_calculus.py`):
-   - Turing degrees and Turing jumps $A \mapsto A'$ (`TuringDegree`).
-   - $\omega$-towers of halting problem oracles deciding computational queries (`OracleTower`, `ComputationalQuery`).
+   - Turing degrees and Turing jumps $A \mapsto A^\prime$ (`TuringDegree`).
+   - $\omega$ towers of halting problem oracles deciding computational queries (`OracleTower`, `ComputationalQuery`).
    - Trans-omega leapfrog computations runnable in unit time ($O(\omega^\omega)$ contracted via closed-form limits) (`LeapfrogComputation`).
-   - Hyperoracles equipped with hyperjumps ($\Pi^1_1$-comprehension) deciding entire oracle towers simultaneously (`Hyperoracle`).
+   - Hyperoracles equipped with hyperjumps ($\Pi_1^1$ comprehension) deciding entire oracle towers simultaneously (`Hyperoracle`).
    - Conclusion analysis resolving self-referential diagonal queries by ascending oracle tiers (`ConclusionAnalysis`).
 
 ---
@@ -53,7 +54,7 @@ A unified formal framework and computational library implementing extended mathe
 
 `grounded-hypercalculi` operates in synergy with adjacent formal repositories:
 
-- **`hypermath`**: Primitive foundational algebraic kernel, quadrilateral filtration (syntax $\sim\sim$, abstraction $\sim=$, substance $=~$, semantics $==$), and Lean 4 formal bridge.
+- **`hypermath`**: Primitive foundational algebraic kernel, quadrilateral filtration (syntax $\approx$, abstraction $\simeq$, substance $\cong$, semantics $\equiv$), and Lean 4 formal bridge.
 - **`ordinatics`**: Ordinal-based metalanguage and stratified truth stage evaluation constructed up from `hypermath`.
 - **`grounded-hyperset-theory`**: Aczel's Anti-Foundation Axiom (AFA), Accessible Pointed Graphs (APGs), circular sets, and bisimulation quotienting.
 - **`grounded-hypercalculi`**: The unified domain language and execution engine for all formal calculi.
