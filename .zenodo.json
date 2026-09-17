@@ -1,0 +1,24 @@
+{
+  "creators": [
+    {
+      "name": "Roost, Tyler"
+    }
+  ],
+  "description": "Grounded Hypercalculi: A unified formal framework and computational library implementing extended mathematical, symbolic, structural, and computational calculi: Language, Meta, Hyper, Ordinal, Real Analysis, and Oracle Calculi.",
+  "keywords": [
+    "calculus",
+    "hypercalculus",
+    "formal methods",
+    "mathematical logic",
+    "transfinite arithmetic",
+    "surreal numbers",
+    "turing degrees",
+    "metamath",
+    "symbolic dynamics",
+    "aczel afa"
+  ],
+  "license": "Apache-2.0",
+  "title": "Grounded Hypercalculi: Extended Mathematical and Computational Calculi",
+  "version": "0.1.0",
+  "upload_type": "software"
+}
