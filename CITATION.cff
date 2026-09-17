@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Grounded Hypercalculi: A Unified Framework for Extended Computational and Mathematical Calculi"
+version: 0.1.0
+date-released: 2026-09-17
+authors:
+  - family-names: "Roost"
+    given-names: "Tyler"
+repository-code: "https://github.com/TimeLordRaps/grounded-hypercalculi"
+license: "Apache-2.0"

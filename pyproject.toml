@@ -1,0 +1,64 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "grounded-hypercalculi"
+version = "0.1.0"
+description = "Because there are more calculi than just maths': Language, Meta, Hyper, Ordinal, Real, and Oracle Calculi."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [
+    { name = "Tyler Roost" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-timeout>=2.3",
+    "ruff>=0.9",
+    "build>=1.2",
+    "twine>=6.0",
+    "hatchling>=1.27",
+]
+test = [
+    "pytest>=8.0",
+]
+release = [
+    "build>=1.2",
+    "twine>=6.0",
+    "hatchling>=1.27",
+]
+
+[project.urls]
+Homepage = "https://github.com/TimeLordRaps/grounded-hypercalculi"
+Repository = "https://github.com/TimeLordRaps/grounded-hypercalculi"
+Issues = "https://github.com/TimeLordRaps/grounded-hypercalculi/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/grounded_hypercalculi"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+norecursedirs = ["artifacts_tmp", "build", "dist", ".git", ".venv", "_site"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
