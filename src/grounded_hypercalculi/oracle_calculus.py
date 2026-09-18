@@ -4,12 +4,27 @@ Oracle calculus formalizes:
 1. Turing Degrees and Turing Jumps: A |-> A' representing the halting problem relative to oracle A.
 2. omega-Towers of Halting Problems: Sequences 0, 0', 0'', ..., 0^(omega), ..., 0^(alpha) where each
    tier decides the halting problem of the lower tiers.
-3. Leapfrog Computations: Instantaneous O(omega^omega) trans-omega evaluation running in unit time,
-   contracting transfinite state trajectories into terminal conclusions.
-4. Hyperoracles: Oracles equipped with hyperjumps (Kleene's O / Pi^1_1-complete truth) that decide
-   entire towers of halting problems simultaneously.
-5. Conclusion Analysis: Fixed-point contraction of transfinite oracle evaluations, closing
-   reasoning loops into verified terminal verdicts.
+3. Leapfrog Computations: Evaluation of a staged state trajectory to a terminal conclusion,
+   under a declared stage budget.
+4. Hyperoracles: Oracles equipped with hyperjumps (Kleene's O / Pi^1_1-complete truth), standing
+   above the finite tiers of the tower.
+5. Conclusion Analysis: Lifting a self-referential query to the next oracle rank, so that a
+   diagonal statement is answered one tier above the one it talks about.
+
+What is modelled and what is computed
+-------------------------------------
+The tier arithmetic in this module is real: which rank an oracle must exceed to
+address a query, how a jump raises a degree, and how a self-referential query is
+lifted are all computed from the stated hierarchy, and are tested as such.
+
+The HALTS/LOOPS verdicts are not. Halting is undecidable, and no
+ComputationalQuery carries a program in any case -- it carries a label, an
+integer, a description and a rank -- so there is nothing for a decision
+procedure to read. Where this module must produce a verdict it derives one
+deterministically from a hash of the query's label, which makes results
+reproducible and carries no information about whether anything halts. Read a
+verdict as an opaque, stable token attached to a label, never as evidence about
+a program. See tests/test_oracle_calculus_semantics.py, which pins exactly this.
 """
 
 from __future__ import annotations
@@ -22,6 +37,11 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple
 
 def _deterministic_hash(key: str) -> int:
     return int.from_bytes(hashlib.sha256(key.encode("utf-8")).digest()[:8], "big")
+
+
+# Default ceiling on stages LeapfrogComputation will evaluate in one call. The
+# operator refuses past it rather than extrapolating from a sample.
+_DEFAULT_STAGE_BUDGET = 1_000_000
 
 
 
@@ -81,7 +101,22 @@ class OracleTower:
     _decided_cache: Dict[Tuple[int, str, int], HaltingStatus] = field(default_factory=dict)
 
     def decide_halting(self, query: ComputationalQuery, oracle_level: int) -> HaltingStatus:
-        """Decide the halting status of a query using an oracle at specified level."""
+        """Return this tower's verdict for a query addressed at ``oracle_level``.
+
+        UNDECIDABLE_AT_TIER is a real result: it is returned exactly when
+        ``oracle_level <= query.complexity_rank``, which is the stated condition
+        for a tier to be too low to address the query, and it holds for every
+        query regardless of its label.
+
+        HALTS and LOOPS are not results. They are a deterministic placeholder,
+        derived from a hash of ``program_id`` and ``input_val``, and they say
+        nothing about whether any program halts -- ``query`` does not contain a
+        program to ask about. The verdict is stable across calls and towers, so
+        it is reproducible; it is not evidence. Renaming a query changes it.
+
+        Raises:
+            ValueError: ``oracle_level`` is negative.
+        """
         if oracle_level < 0:
             raise ValueError("Oracle level must be non-negative")
         
@@ -103,11 +138,16 @@ class OracleTower:
 
 @dataclass(frozen=True)
 class LeapfrogComputation:
-    """Trans-omega leapfrog computation operator.
-    
-    A leapfrog computation contracts an O(omega^omega) transfinite derivation
-    into an instant-time (O(1)) transition by taking the transfinite limit of
-    the state progression.
+    """Staged state-progression operator.
+
+    Evaluates a transition rule stage by stage from an initial state to a
+    requested stage count, and refuses past a declared budget.
+
+    This operator does not contract a derivation into unit time. An arbitrary
+    ``Callable`` exposes no algebraic structure to contract, and the closed form
+    this class previously extrapolated -- one probe step scaled by the stage
+    count -- is the sequence's value only for ``s -> s + c``. Returning a wrong
+    value quickly is not an acceleration, so the stages are evaluated instead.
     """
     dimension: int
     contraction_factor: float = 1.0
@@ -117,56 +157,102 @@ class LeapfrogComputation:
         initial_state: Any,
         transition_rule: Callable[[Any, int], Any],
         ordinal_stages: int,
+        *,
+        max_evaluated_stages: int = _DEFAULT_STAGE_BUDGET,
     ) -> Any:
-        """Evaluate a transfinite sequence of stages instantly via contractive limit."""
+        """Return the state reached after ``ordinal_stages`` applications of the rule.
+
+        Stage ``i`` is ``transition_rule(state, i)``, so the result is the rule
+        composed with itself ``ordinal_stages`` times starting from
+        ``initial_state``.
+
+        No closed form is assumed. An arbitrary ``Callable`` carries no algebraic
+        structure the operator can read, so there is nothing to contract: the
+        stages are evaluated. The earlier implementation sampled a single step,
+        took ``delta = transition_rule(s0, 0) - s0`` and returned
+        ``s0 + delta * ordinal_stages``, which is the sequence's value only when
+        the rule is ``s -> s + c`` for a ``c`` independent of both the state and
+        the stage index. Under ``s -> s / 2`` from ``1.0`` over ten stages that
+        extrapolation returned ``-4.0``, for a sequence that is positive and
+        decreasing towards zero; under ``s -> (s + 1) % 7`` it returned ``10``,
+        which is not in the rule's codomain at all.
+
+        A caller who does possess a closed form for a particular rule should
+        apply it and pass the resulting stage count, rather than have this
+        operator guess one from a two-point sample.
+
+        Args:
+            initial_state: The stage-zero state. Any type the rule accepts.
+            transition_rule: ``(state, stage_index) -> next_state``.
+            ordinal_stages: How many stages to evaluate. Must be non-negative.
+            max_evaluated_stages: Evaluation budget. Beyond it the operator
+                refuses rather than substituting an unverified extrapolation.
+
+        Raises:
+            ValueError: ``ordinal_stages`` is negative, or exceeds
+                ``max_evaluated_stages``. Exceeding the budget is a refusal, not
+                a verdict that the stage sequence diverges -- the value is
+                unknown to this operator, not established to be anything.
+        """
         if ordinal_stages < 0:
             raise ValueError("Ordinal stages must be non-negative")
+        if max_evaluated_stages < 0:
+            raise ValueError("Stage budget must be non-negative")
         if ordinal_stages == 0:
             return initial_state
+        if ordinal_stages > max_evaluated_stages:
+            raise ValueError(
+                f"ordinal_stages {ordinal_stages} exceeds the evaluation budget "
+                f"{max_evaluated_stages}; no closed form is established for an "
+                f"arbitrary transition rule, so the stages would have to be "
+                f"evaluated. Raise max_evaluated_stages to spend the steps, or "
+                f"contract the sequence yourself and pass the reduced count."
+            )
 
-        # For finite-bounded representation of leapfrog:
-        # Instead of executing all intermediate stages iteratively, the leapfrog
-        # operator evaluates the closed-form fixed point / limit stage directly.
         state = initial_state
-        # Probe first step to determine state structure
-        s1 = transition_rule(state, 0)
-        if isinstance(s1, (int, float)):
-            # Linear/algebraic leapfrog closed-form acceleration
-            delta = s1 - state
-            return initial_state + delta * ordinal_stages
-        elif isinstance(s1, tuple) and isinstance(initial_state, tuple) and len(s1) == len(initial_state):
-            # Coordinate-wise leapfrog limit for numerical tuples
-            if all(isinstance(a, (int, float)) and isinstance(b, (int, float)) for a, b in zip(initial_state, s1)):
-                deltas = [b - a for a, b in zip(initial_state, s1)]
-                return tuple(a + d * ordinal_stages for a, d in zip(initial_state, deltas))
-            return transition_rule(state, ordinal_stages - 1)
-        else:
-            # General fixed-point projection
-            return transition_rule(state, ordinal_stages - 1)
+        for stage_index in range(ordinal_stages):
+            state = transition_rule(state, stage_index)
+        return state
 
 
 @dataclass
 class Hyperoracle:
     """A hyperoracle equipped with hyperjumps (Kleene's O / Pi^1_1-comprehension).
-    
-    Hyperoracles transcend the entire arithmetic hierarchy (Sigma^0_n) and can decide
-    entire omega-towers of halting problems in a single computational step.
+
+    Models an oracle standing above every finite tier of the arithmetic
+    hierarchy (Sigma^0_n).
+
+    Its verdicts carry the same caveat as ``OracleTower.decide_halting``: they
+    are deterministic placeholders keyed on a query label, not decisions.
+    ``evaluate_tower`` currently evaluates the same expression as a level-one
+    tower, and consults neither the ``tower`` argument nor each query's rank.
     """
     power_rank: str = "Pi_1_1"
 
     def evaluate_tower(self, tower: OracleTower, queries: Sequence[ComputationalQuery]) -> Dict[str, HaltingStatus]:
-        """Decide an entire collection of queries across all finite oracle levels simultaneously."""
+        """Return a placeholder verdict for each query, keyed by program_id.
+
+        Not a decision over the tower: ``tower`` is unused, each query's rank is
+        ignored, and the verdicts are the label-keyed placeholders described on
+        ``OracleTower.decide_halting``. Queries sharing a ``program_id`` collapse
+        to one entry in the returned mapping.
+        """
         results: Dict[str, HaltingStatus] = {}
         for q in queries:
-            # A hyperoracle operates strictly above all finite Turing jumps (rank omega and beyond)
-            # and thus resolves all queries of finite rank instantly.
+            # Placeholder verdict -- see the class docstring. Deterministic so
+            # that results are reproducible, and informative about nothing.
             status = HaltingStatus.HALTS if (_deterministic_hash(f"{q.program_id}:{q.input_val}") % 2 == 0) else HaltingStatus.LOOPS
             results[q.program_id] = status
         return results
 
     def solve_hyperhalting(self, oracle_machine_id: str) -> bool:
-        """Decide the halting problem for hyperarithmetic machines."""
-        # Solves whether an oracle machine halts even when granted access to all finite oracles
+        """Return a deterministic placeholder flag for a machine identifier.
+
+        Named for the hyperhalting problem this position in the hierarchy would
+        address; it does not address it. The value is a hash of the identifier
+        and is true for roughly two thirds of identifiers, which is a property
+        of the hash, not of any machine.
+        """
         return (_deterministic_hash(oracle_machine_id) % 3) != 0
 
 

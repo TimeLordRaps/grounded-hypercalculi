@@ -102,6 +102,17 @@ def ordinal_derivative(F: Callable[[BoundedOrdinal], BoundedOrdinal], n_fixed_po
             curr = nxt
         if not is_fixed:
             raise ValueError(f"Function did not converge to a fixed point from initial stage {curr}")
+        # A normal function's fixed points form a strictly increasing sequence, so
+        # each search must land above the last. Iterating F from gamma + 1 can fall
+        # back to gamma when F is not normal -- F(alpha) = 5 reported 5 four times
+        # over as "the first four fixed points" -- and a repeated entry is a wrong
+        # answer, not a shorter one.
+        if fixed_points and not (fixed_points[-1] < curr):
+            raise ValueError(
+                f"fixed point {curr} does not exceed the previously enumerated "
+                f"{fixed_points[-1]}; F is not normal on this range, and its fixed "
+                f"points cannot be enumerated in increasing order"
+            )
         fixed_points.append(curr)
         curr = curr + ONE
     return fixed_points
@@ -116,7 +127,32 @@ class VeblenHierarchy:
     symbolic_name: str = ""
 
     def evaluate_finite(self) -> BoundedOrdinal:
+        """phi_alpha(beta), where it is representable below omega^omega.
+
+        Only the alpha = 0 row with finite beta lands in range. phi_0(beta) is
+        omega^beta, which stays below omega^omega exactly while beta is finite.
+
+        Everything else is out of range and is refused. phi_0(omega) is
+        omega^omega itself, and phi_1(beta) is epsilon_beta, the beta-th fixed
+        point of xi |-> omega^xi, which starts at epsilon_0 and only grows. This
+        previously returned omega for all of them, which is not an approximation
+        of epsilon_0 but a smaller ordinal than the one asked for.
+
+        Raises:
+            ValueError: the requested value is not below omega^omega.
+        """
+        if self.alpha < 0:
+            raise ValueError("Veblen index alpha must be non-negative")
         if self.alpha == 0:
+            if not self.beta.is_finite:
+                raise ValueError(
+                    f"phi_0({self.beta}) is omega**{self.beta}, which is not below "
+                    f"omega^omega and so is not representable as a BoundedOrdinal"
+                )
             # phi_0(beta) = omega^beta
-            return BoundedOrdinal((0,) * self.beta.to_int() + (1,)) if self.beta.is_finite else OMEGA
-        return OMEGA
+            return BoundedOrdinal((0,) * self.beta.to_int() + (1,))
+        raise ValueError(
+            f"phi_{self.alpha}({self.beta}) is at least epsilon_0, the least fixed "
+            f"point of xi |-> omega**xi, which is far above omega^omega and so is "
+            f"not representable as a BoundedOrdinal"
+        )

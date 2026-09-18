@@ -89,13 +89,15 @@ def test_transfinite_oracle_tower_invariants():
 
 def test_leapfrog_multidimensional_state():
     leapfrog = LeapfrogComputation(dimension=2)
-    # Coordinate progression (x, y) -> (x + 1, y * 2)
-    rule = lambda s, i: (s[0] + 1, s[1])
-    initial = (0, 100)
-    # Instantaneous contraction of 500 stages
-    final_state = leapfrog.leapfrog_step(initial, rule, ordinal_stages=500)
-    assert final_state[0] == 500
-    assert final_state[1] == 100
+    # Coordinate progression (x, y) -> (x + 1, y * 2). The rule was previously
+    # written as (x + 1, y), which is the affine case the old extrapolation
+    # happened to get right; the comment described the multiplicative case the
+    # whole time. Restored to what it says.
+    rule = lambda s, i: (s[0] + 1, s[1] * 2)
+    initial = (0, 1)
+    final_state = leapfrog.leapfrog_step(initial, rule, ordinal_stages=10)
+    assert final_state[0] == 10
+    assert final_state[1] == 2**10
 
 
 def test_conclusion_analysis_closure():
