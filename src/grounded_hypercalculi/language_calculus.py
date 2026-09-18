@@ -1,4 +1,17 @@
-"""Language Calculus: syntax trees, alphabets, productions, quotations, and Metamath proof validation."""
+"""Language Calculus: syntax trees, alphabets, productions, quotations, and proof checking.
+
+``MetamathDatabase`` checks Reverse-Polish-Notation proofs over a *fragment* of
+Metamath, not the language. It has constants, variables, floating and essential
+hypotheses, axioms, theorems and modus ponens. It does **not** have
+substitution, disjoint-variable conditions, frame-derived mandatory hypothesis
+ordering, or compressed proofs. Hypotheses are matched literally, so an axiom
+stated over ``P`` applies only to arguments that literally mention ``P``.
+
+That makes it incomplete against real Metamath databases, which is the direction
+a proof checker can afford to be wrong in. It is not permitted to be wrong in
+the other: see ``verify_proof`` for the four defects that let it certify ``|- F.``
+and ``tests/test_proof_verifier_soundness.py`` for the attacks that pin them.
+"""
 
 from __future__ import annotations
 
@@ -89,49 +102,132 @@ class MetamathDatabase:
     def add_theorem(self, label: str, statement: Sequence[str], proof: Sequence[str]) -> None:
         self.theorems[label] = (list(statement), list(proof))
 
+    def add_essential_hyp(self, label: str, statement: Sequence[str]) -> None:
+        """Declare an essential hypothesis, the logical premise of an axiom."""
+        self.essential_hypotheses[label] = list(statement)
+
+    def _hypothesis_statement(self, label: str) -> Optional[List[str]]:
+        """The statement a hypothesis label stands for, or None if it has none."""
+        if label in self.type_hypotheses:
+            var, type_code = self.type_hypotheses[label]
+            return [type_code, var]
+        if label in self.essential_hypotheses:
+            return list(self.essential_hypotheses[label])
+        return None
+
     def verify_proof(self, label: str) -> bool:
-        """Verify an RPN proof of a theorem in the database."""
+        """Whether the RPN proof recorded for ``label`` establishes its statement.
+
+        Proof tokens are read left to right against a stack. A hypothesis label
+        pushes the statement it stands for. An axiom label pops one entry per
+        declared hypothesis, requires each to match, and pushes the axiom's
+        statement. A theorem label pushes that theorem's statement only once
+        that theorem's own proof has been verified. ``mp`` applies modus ponens.
+        The proof succeeds when it ends with exactly the claimed statement on the
+        stack, and nothing else.
+
+        Hypotheses are matched **exactly**, not up to substitution. Metamath
+        proper unifies an axiom's hypotheses with the arguments by substituting
+        for variables, and this does not: an axiom stated over ``P`` applies only
+        to arguments literally mentioning ``P``. That rejects valid proofs, which
+        is a limitation of this verifier and is the direction it is safe to be
+        wrong in. It accepts no step whose hypotheses were not supplied.
+
+        That was not previously true. The popped arguments were discarded
+        without comparison, so an axiom reading "from |- A conclude |- F." could
+        be applied to |- B, and this method returned True for a proof of
+        falsity. Unsoundness in a proof checker is the whole of the thing it is
+        for, so these are rejections, not stricter warnings.
+
+        Returns:
+            True only if every step is licensed. False for any unknown token,
+            unmatched hypothesis, stack underflow, circular citation, or
+            residue left on the stack.
+        """
+        return self._verify(label, in_progress=frozenset())
+
+    def _verify(self, label: str, in_progress: frozenset) -> bool:
         if label not in self.theorems:
             return False
+        if label in in_progress:
+            # A proof that cites itself, directly or through a chain, establishes
+            # nothing. Detect it rather than recurse until the stack gives out.
+            return False
         expected_statement, proof_tokens = self.theorems[label]
+        nested = in_progress | {label}
         stack: List[List[str]] = []
 
         for token in proof_tokens:
-            if token in self.type_hypotheses:
-                var, type_code = self.type_hypotheses[token]
-                stack.append([type_code, var])
-            elif token in self.essential_hypotheses:
-                stack.append(list(self.essential_hypotheses[token]))
-            elif token in self.axioms or token in self.theorems:
-                entry = self.axioms[token] if token in self.axioms else self.theorems[token]
-                stmt, hyps = entry
-                num_hyps = len(hyps)
-                if len(stack) < num_hyps:
+            hypothesis = self._hypothesis_statement(token)
+            if hypothesis is not None:
+                stack.append(hypothesis)
+            elif token in self.axioms:
+                statement, hypothesis_labels = self.axioms[token]
+                if len(stack) < len(hypothesis_labels):
                     return False
-                # Consume arguments
-                consumed = [stack.pop() for _ in range(num_hyps)] if num_hyps else []
-                # Simple substitution / deduction model
-                stack.append(list(stmt))
-            elif token == "mp":  # Modus Ponens
-                if len(stack) < 2:
-                    return False
-                major = stack.pop()
-                minor = stack.pop()
-                # If major is |- ( A -> B ) or |- A -> B, and minor is |- A, consequent is |- B
-                if len(major) >= 4 and "->" in major:
-                    arr_idx = major.index("->")
-                    antecedent = major[2:arr_idx] if (len(major) > 2 and major[1] == "(") else major[1:arr_idx]
-                    minor_formula = minor[1:] if len(minor) > 1 else minor
-                    if antecedent != minor_formula:
+                # popped comes off top-first; the proof pushes the hypotheses in
+                # the order the axiom declares them, so reverse to compare.
+                popped = [stack.pop() for _ in range(len(hypothesis_labels))]
+                supplied = list(reversed(popped))
+                for hypothesis_label, argument in zip(hypothesis_labels, supplied):
+                    required = self._hypothesis_statement(hypothesis_label)
+                    if required is None or required != argument:
                         return False
-                    if major[-1] == ")":
-                        consequent = [major[0]] + major[arr_idx + 1:-1]
-                    else:
-                        consequent = [major[0]] + major[arr_idx + 1:]
-                    stack.append(consequent)
-                else:
+                stack.append(list(statement))
+            elif token in self.theorems:
+                # A cited theorem carries a proof, not a hypothesis list. It may
+                # be used only once that proof checks out.
+                if not self._verify(token, nested):
                     return False
+                stack.append(list(self.theorems[token][0]))
+            elif token == "mp":
+                consequent = self._modus_ponens(stack)
+                if consequent is None:
+                    return False
+                stack.append(consequent)
             else:
                 return False
 
         return len(stack) == 1 and stack[0] == expected_statement
+
+    @staticmethod
+    def _modus_ponens(stack: List[List[str]]) -> Optional[List[str]]:
+        """Pop a minor and major premise and return the consequent, or None.
+
+        The major premise must be a parenthesised implication ``|- ( A -> B )``.
+        It is split at the ``->`` sitting at paren depth zero, which is the
+        connective the formula is an implication *of*; splitting at the first
+        ``->`` token instead reads the inner connective of ``( ( A -> B ) -> C )``
+        and yields ``B ) -> C``, a token sequence that is not a formula.
+        """
+        if len(stack) < 2:
+            return None
+        major = stack.pop()
+        minor = stack.pop()
+        if len(major) < 5 or major[1] != "(" or major[-1] != ")":
+            return None
+
+        body = major[2:-1]
+        depth = 0
+        split_at = None
+        for index, tok in enumerate(body):
+            if tok == "(":
+                depth += 1
+            elif tok == ")":
+                depth -= 1
+                if depth < 0:
+                    return None  # unbalanced
+            elif tok == "->" and depth == 0:
+                if split_at is not None:
+                    return None  # ambiguous: two top-level arrows, not one formula
+                split_at = index
+        if depth != 0 or split_at is None:
+            return None
+
+        antecedent = body[:split_at]
+        consequent = body[split_at + 1:]
+        if not antecedent or not consequent:
+            return None
+        if minor[1:] != antecedent:
+            return None
+        return [major[0]] + consequent

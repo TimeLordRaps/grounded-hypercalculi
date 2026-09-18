@@ -14,38 +14,59 @@ A unified formal framework and computational library implementing extended mathe
 1. **Language Calculus** (`language_calculus.py`):
    - Formal syntax trees, alphabets, productions, and formal grammars (`Symbol`, `Alphabet`, `ProductionRule`, `Grammar`).
    - Reflexive non-well-founded quotation graphs (`QuotationNode.self_quoting`) under Aczel's Anti-Foundation Axiom (AFA).
-   - Reverse-Polish-Notation (RPN) formal proof verifier for Metamath databases (`MetamathDatabase`) with sound Modus Ponens deduction.
+   - Reverse-Polish-Notation (RPN) proof checker (`MetamathDatabase`) for a Metamath-style
+     fragment: hypotheses, axioms, cited theorems and modus ponens. Hypotheses are matched
+     literally rather than by substitution, so it rejects some proofs a full Metamath
+     verifier accepts, and licenses no step whose hypotheses were not supplied.
 
 2. **Meta-Calculus** (`meta_calculus.py`):
-   - Symbolic dynamics of term rewrite systems (`RewriteRule`, `RewriteSystem`).
-   - Infinite trajectory spaces $\mathcal{S}^\omega$, shift operators $\sigma$ (`shift_operator`), and coalgebraic trajectory bisimulation (`trajectory_bisimilar`).
+   - Symbolic dynamics of string rewrite systems (`RewriteRule`, `RewriteSystem`).
+     `step` returns every one-step successor, one per place a rule matches rather
+     than one per rule, so reachability and joinability are computed over the whole
+     relation.
+   - Finite trajectory traces under a declared step budget, and the shift operator
+     $\sigma$ on them (`shift_operator`). Traces are finite lists, not points of
+     $\mathcal{S}^\omega$, and the shift is not invertible past the end of one.
+   - Trace comparison (`trajectory_bisimilar`). **This is trace equality, not
+     bisimulation**: it receives two sequences and no transition system, so it cannot
+     be a function of the branching structure bisimilarity is about. The name is
+     public API on a released version; see the docstring for what it does decide.
 
 3. **Hyper-Calculus** (`hyper_calculus.py`):
    - Canonical permutation representations and composition (`Permutation`).
-   - Finite permutation groups, closure generation, group order, and action orbits (`PermutationGroup`).
-   - Linear derivation operators on functional spaces satisfying the Leibniz product rule (`DerivationOperator.leibniz_check`).
-   - Lie commutator brackets preserving semantic Noether invariants (`commutator_bracket`):
+   - Finite permutation groups from explicit generators, with closure generation, group
+     order, and action orbits (`PermutationGroup`). The closure is enumerated under a
+     declared budget and refuses past it; orbits are computed directly from the
+     generators, so they are available for groups far too large to enumerate.
+   - Derivation operators over a caller-supplied map on functions, with a pointwise
+     Leibniz check (`DerivationOperator.leibniz_check`). The Leibniz rule is *tested* at
+     a point, not enforced at construction: the operator holds whatever map it is given.
+   - Lie commutator brackets (`commutator_bracket`):
      $$[D_1, D_2] = D_1 \circ D_2 - D_2 \circ D_1$$
+     The bracket of two derivations is itself a derivation, which general linear
+     operators do not satisfy; this is tested rather than asserted.
 
 4. **Ordinal Calculus** (`ordinal_calculus.py`):
    - Exact transfinite arithmetic below $\omega^\omega$ in Cantor Normal Form (`BoundedOrdinal`, `OMEGA`, `ZERO`, `ONE`).
    - Exact left subtraction $\beta + \gamma = \alpha \implies \gamma = \alpha - \beta$ (`alpha.left_sub(beta)`).
    - Discrete difference operators $\Delta F(\alpha) = F(\alpha + 1) - F(\alpha)$ (`ordinal_difference`).
    - Ordinal derivative fixed-point enumeration (`ordinal_derivative`) failing closed on non-convergent stages.
-   - Veblen hierarchies $\varphi_\alpha(\beta)$ (`VeblenHierarchy`).
+   - Veblen hierarchies $\varphi_\alpha(\beta)$ on the $\alpha = 0$ row, $\varphi_0(\beta) = \omega^\beta$; higher rows start at $\varepsilon_0$ and are refused as unrepresentable (`VeblenHierarchy`).
 
 5. **Real Analysis Calculus** (`real_calculus.py`):
    - Exact grounded rational arithmetic with ordering and division (`GroundedRational`).
-   - Dedekind cuts $(L, R)$ of rationals with containment testing and constants (`DedekindCut.sqrt_two`).
-   - Conway Surreal numbers $\{L \mid R\}$ supporting transfinite numbers and canonical infinitesimals $\epsilon = 1/\omega$ (`SurrealGame`, `SurrealGame.infinitesimal`), with strict numeric validation.
-   - Cauchy sequences of rationals generating the continuum with convergence checks and canonical limits (`CauchySequence.euler_e`, `CauchySequence.geometric_series`).
+   - Dedekind cuts $(L, R)$ of rationals with containment testing and constants (`DedekindCut.sqrt_two`). A cut carrying only bounds refuses membership questions inside them rather than answering False.
+   - Conway Surreal numbers $\{L \mid R\}$ valued by the simplicity rule, with strict numeric validation (`SurrealGame`). Options are floats, so transfinite and genuinely infinitesimal games are outside this representation; `SurrealGame.infinitesimal` is a finite truncation of $\epsilon$ whose value is $1/8$.
+   - Cauchy sequences of rationals generating the continuum, with canonical limits and a windowed screen for the Cauchy criterion (`CauchySequence.euler_e`, `CauchySequence.geometric_series`). The screen is evidence in both directions and a proof in neither; see `is_cauchy`.
    - Central difference numerical derivatives (`numerical_derivative`) and Riemann midpoint integration (`riemann_integral`).
 
 6. **Oracle Calculus** (`oracle_calculus.py`):
    - Turing degrees and Turing jumps $A \mapsto A^\prime$ (`TuringDegree`).
-   - $\omega$ towers of halting problem oracles deciding computational queries (`OracleTower`, `ComputationalQuery`).
-   - Trans-omega leapfrog computations runnable in unit time ($O(\omega^\omega)$ contracted via closed-form limits) (`LeapfrogComputation`).
-   - Hyperoracles equipped with hyperjumps ($\Pi_1^1$ comprehension) deciding entire oracle towers simultaneously (`Hyperoracle`).
+   - $\omega$ towers of halting problem oracles, computing which tier is required to address a query (`OracleTower`, `ComputationalQuery`).
+   - Staged trans-omega state progressions evaluated to a terminal conclusion under a declared stage budget (`LeapfrogComputation`).
+   - Hyperoracles equipped with hyperjumps ($\Pi_1^1$ comprehension), standing above the finite tiers (`Hyperoracle`).
+
+   The tier arithmetic is computed. The `HALTS`/`LOOPS` verdicts are deterministic placeholders keyed on a query's label: halting is undecidable, and a `ComputationalQuery` carries no program to examine. Treat a verdict as a stable token, never as evidence about a program.
    - Conclusion analysis resolving self-referential diagonal queries by ascending oracle tiers (`ConclusionAnalysis`).
 
 ---

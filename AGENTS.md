@@ -25,12 +25,12 @@ PYTHONPATH=src python -S -c "import grounded_hypercalculi; print(grounded_hyperc
 
 `grounded-hypercalculi` is the formal domain library and execution engine for extended mathematical, symbolic, and computational calculi. It standardizes six extended calculi:
 
-1. **Language Calculus**: Formal syntax trees, alphabet specifications, context-free production rules, reflexive non-well-founded quotation graphs under Aczel's Anti-Foundation Axiom (AFA), and verified Metamath RPN proof validation.
-2. **Meta-Calculus**: Symbolic dynamics of term rewrite systems, infinite trajectory spaces $\mathcal{S}^\omega$, shift operators $\sigma$, coalgebraic trajectory bisimulation, and Coxeter word-homotopy.
-3. **Hyper-Calculus**: Automorphism groups $\mathrm{Aut}(G)$ over semantic state spaces, permutation groups, Lie derivation algebras with Leibniz product rule and Lie commutator brackets preserving semantic Noether invariants.
-4. **Ordinal Calculus**: Exact transfinite arithmetic below $\omega^\omega$, left subtraction, discrete difference operators $\Delta F$, normal functions, ordinal derivatives $F'$ enumerating fixed points, and Veblen hierarchies.
-5. **Real Analysis Calculus**: Continuum constructions grounded in hyperset ordinals, Dedekind cuts, Cauchy rational sequences, and Conway Surreal numbers supporting transfinite numbers and infinitesimals $\epsilon = 1/\omega$.
-6. **Oracle Calculus**: Hypercomputation, trans-omega leapfrog computations ($O(\omega^\omega)$ in unit time), $\omega$-towers of halting oracles $\mathcal{H}_\alpha$, hyperoracles, and contractive conclusion analysis.
+1. **Language Calculus**: Formal syntax trees, alphabet specifications, context-free production rules, reflexive non-well-founded quotation graphs under Aczel's Anti-Foundation Axiom (AFA), and an RPN proof checker for a Metamath-style fragment (literal hypothesis matching, no substitution).
+2. **Meta-Calculus**: Symbolic dynamics of string rewrite systems with the complete one-step successor relation, finite trajectory traces under a step budget, and the shift operator $\sigma$ on them. `trajectory_bisimilar` compares traces for equality and is not bisimulation, despite the name.
+3. **Hyper-Calculus**: Finite permutation groups from explicit generators (budgeted closure, group order, action orbits), derivation operators with a pointwise Leibniz check, and Lie commutator brackets, whose bracket of two derivations is again a derivation.
+4. **Ordinal Calculus**: Exact transfinite arithmetic below $\omega^\omega$, left subtraction, discrete difference operators $\Delta F$, normal functions, ordinal derivatives $F'$ enumerating fixed points in strictly increasing order, and the $\alpha = 0$ row of the Veblen hierarchy. Higher rows begin at $\varepsilon_0$ and are refused rather than approximated.
+5. **Real Analysis Calculus**: Continuum constructions grounded in hyperset ordinals, Dedekind cuts, Cauchy rational sequences, and Conway Surreal numbers valued by the simplicity rule. Surreal options are floats, so transfinite and infinitesimal games are outside the representation; `is_cauchy` is a windowed screen rather than a convergence proof.
+6. **Oracle Calculus**: Hypercomputation, staged trans-omega computations evaluated under a declared budget, $\omega$-towers of halting oracles $\mathcal{H}_\alpha$, hyperoracles, and conclusion analysis by rank ascent. The tier arithmetic is computed; the `HALTS`/`LOOPS` verdicts are deterministic placeholders keyed on a query label and are not decisions.
 
 ### 1.1 The TimeLord Formal Ecosystem
 
