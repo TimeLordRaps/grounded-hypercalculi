@@ -103,3 +103,20 @@ python scripts/release_artifacts.py compare PATH_TO_LINUX_ARTIFACTS PATH_TO_WIND
 
 Never commit private keys, tokens, or credential material. All test anchors are mock/emulator only.
 Report vulnerabilities through private repository channels described in [`SECURITY.md`](SECURITY.md).
+
+## 7. Test skip disclosure and rubric classification
+
+To prevent skip slippage, automated contributors and maintainers MUST disclose the
+explicit rationale behind every skipped test or unrun check. Skips must clear a
+standard checklist of rubricized definitional categories:
+
+1. `OS_CAPABILITY_GUARD`: Underlying operating system capability absent.
+2. `OPTIONAL_DEPENDENCY_ABSENT`: Non-core third-party dependency or optional extra not installed.
+3. `EXTERNAL_SERVICE_BOUNDARY`: Live network service, external API, or daemon unavailable.
+4. `ARCHITECTURAL_PLATFORM_UNSUPPORTED`: Processor architecture or endianness unsupported.
+5. `HARDWARE_DEVICE_UNAVAILABLE`: Physical accelerator or specialized hardware absent.
+6. `PRIVILEGE_OR_CREDENTIAL_BOUNDARY`: Elevated administrator/root privilege or secret keys absent.
+7. `PERFORMANCE_OR_DURATION_EXCLUSION`: Long-running stress, soak, or intensive benchmark excluded.
+8. `QUARANTINED_DEFECT`: Known tracked issue isolated under active quarantine.
+
+An omitted or skipped test is never a pass. Pull requests and preflight checks must classify every skip against this rubric.
