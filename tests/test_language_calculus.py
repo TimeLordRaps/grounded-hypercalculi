@@ -81,3 +81,37 @@ def test_metamath_modus_ponens_mismatched_antecedent_fails():
     db.add_theorem("th-bad", ["|-", "Q"], ["wz", "ax-z", "wp", "wq", "ax-imp", "mp"])
     assert not db.verify_proof("th-bad")
 
+
+def test_grammar_derivations_and_membership():
+    s = Symbol("S", is_terminal=False)
+    a = Symbol("a", is_terminal=True)
+    b = Symbol("b", is_terminal=True)
+
+    # S -> a S b | epsilon generates a^n b^n
+    grammar = Grammar(start_symbol=s)
+    grammar.add_rule(s, [a, s, b])
+    grammar.add_rule(s, [])
+
+    assert grammar.non_terminals == frozenset({s})
+    assert grammar.terminals == frozenset({a, b})
+
+    # Derive sentences up to depth 3
+    sentences = grammar.derive(max_depth=3)
+    assert () in sentences
+    assert (a, b) in sentences
+    assert (a, a, b, b) in sentences
+
+    # Membership verification
+    assert grammar.derives_sentence([])
+    assert grammar.derives_sentence([a, b])
+    assert grammar.derives_sentence([a, a, b, b])
+    assert not grammar.derives_sentence([b, a])
+    assert not grammar.derives_sentence([a, a, b])
+
+    # Error checking
+    with pytest.raises(ValueError, match="max_depth must be nonnegative"):
+        grammar.derive(max_depth=-1)
+    with pytest.raises(ValueError, match="Target sentence must contain only terminal symbols"):
+        grammar.derives_sentence([s, a])
+
+

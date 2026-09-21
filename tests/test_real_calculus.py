@@ -2,6 +2,7 @@ from grounded_hypercalculi.real_calculus import (
     CauchySequence,
     DedekindCut,
     GroundedRational,
+    Interval,
     SurrealGame,
     numerical_derivative,
     riemann_integral,
@@ -98,4 +99,57 @@ def test_cauchy_sequence():
     assert geom.is_cauchy(tolerance=1e-4)
     # sum 1/2^k from 0 to infty is 2
     assert abs(geom.limit(n=15) - 2.0) < 1e-4
+
+
+def test_interval_arithmetic():
+    import pytest
+
+    i1 = Interval(1.0, 3.0)
+    assert i1.midpoint == 2.0
+    assert i1.width == 2.0
+    assert i1.radius == 1.0
+    assert 2.0 in i1
+    assert 0.5 not in i1
+
+    # Invariant validation
+    with pytest.raises(ValueError, match="cannot exceed upper bound"):
+        Interval(3.0, 1.0)
+    with pytest.raises(ValueError, match="cannot be NaN"):
+        Interval(float("nan"), 1.0)
+
+    # Arithmetic operations
+    i2 = Interval(2.0, 4.0)
+    add_i = i1 + i2
+    assert add_i == Interval(3.0, 7.0)
+
+    sub_i = i1 - i2
+    assert sub_i == Interval(-3.0, 1.0)
+
+    mul_i = i1 * Interval(-2.0, 4.0)
+    assert mul_i == Interval(-6.0, 12.0)
+
+    div_i = Interval(4.0, 8.0) / Interval(2.0, 4.0)
+    assert div_i == Interval(1.0, 4.0)
+
+    with pytest.raises(ZeroDivisionError, match="containing zero"):
+        _ = i1 / Interval(-1.0, 2.0)
+
+    # Powers and negation
+    assert -i1 == Interval(-3.0, -1.0)
+    assert Interval(-2.0, 3.0) ** 2 == Interval(0.0, 9.0)
+    assert Interval(2.0, 3.0) ** 3 == Interval(8.0, 27.0)
+
+    # Intersection and hull
+    overlap = Interval(1.0, 4.0) & Interval(3.0, 6.0)
+    assert overlap == Interval(3.0, 4.0)
+    disjoint = Interval(1.0, 2.0) & Interval(3.0, 4.0)
+    assert disjoint is None
+
+    hull = Interval(1.0, 2.0) | Interval(4.0, 6.0)
+    assert hull == Interval(1.0, 6.0)
+
+    # Enclosure
+    enclosed = Interval.enclose_samples([1.5, -2.0, 4.5, 0.0])
+    assert enclosed == Interval(-2.0, 4.5)
+
 

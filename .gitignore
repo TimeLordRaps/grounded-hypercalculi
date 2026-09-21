@@ -28,3 +28,13 @@ venv/
 _site/
 artifacts_tmp/
 .benchmarks/
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+paper/render/

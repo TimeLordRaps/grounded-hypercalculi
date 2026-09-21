@@ -10,7 +10,7 @@ import math
 # distinct candidates anyway, so the search refuses rather than rounding.
 _MAX_DYADIC_EXPONENT = 52
 from fractions import Fraction
-from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 
 @dataclass(frozen=True)
@@ -332,3 +332,144 @@ def riemann_integral(f: Callable[[float], float], a: float, b: float, subdivisio
     h = (b - a) / subdivisions
     total = sum(f(a + (i + 0.5) * h) for i in range(subdivisions))
     return total * h
+
+
+@dataclass(frozen=True)
+class Interval:
+    """A closed real interval [lower, upper] for verified interval arithmetic and bounding.
+
+    Enforces interval invariant lower <= upper and provides inclusion monotonicity:
+    if x in X and y in Y, then (x op y) in (X op Y).
+    """
+
+    lower: float
+    upper: float
+
+    def __post_init__(self) -> None:
+        if math.isnan(self.lower) or math.isnan(self.upper):
+            raise ValueError("Interval bounds cannot be NaN")
+        if self.lower > self.upper:
+            raise ValueError(
+                f"Interval lower bound ({self.lower}) cannot exceed upper bound ({self.upper})"
+            )
+
+    @classmethod
+    def point(cls, x: float) -> Interval:
+        """Degenerate point interval [x, x]."""
+        return cls(float(x), float(x))
+
+    @property
+    def midpoint(self) -> float:
+        """Midpoint of the interval (a + b) / 2."""
+        return (self.lower + self.upper) / 2.0
+
+    @property
+    def width(self) -> float:
+        """Diameter/width of the interval b - a."""
+        return self.upper - self.lower
+
+    @property
+    def radius(self) -> float:
+        """Radius of the interval (b - a) / 2."""
+        return (self.upper - self.lower) / 2.0
+
+    def contains(self, x: float | GroundedRational) -> bool:
+        """Return True if scalar x is in [lower, upper]."""
+        val = x.to_float() if isinstance(x, GroundedRational) else float(x)
+        return self.lower <= val <= self.upper
+
+    def __contains__(self, item: Any) -> bool:
+        if isinstance(item, (int, float, GroundedRational)):
+            return self.contains(item)
+        if isinstance(item, Interval):
+            return self.lower <= item.lower and item.upper <= self.upper
+        return False
+
+    def __add__(self, other: Interval | float) -> Interval:
+        o = other if isinstance(other, Interval) else Interval.point(other)
+        return Interval(self.lower + o.lower, self.upper + o.upper)
+
+    def __radd__(self, other: float) -> Interval:
+        return self.__add__(other)
+
+    def __sub__(self, other: Interval | float) -> Interval:
+        o = other if isinstance(other, Interval) else Interval.point(other)
+        return Interval(self.lower - o.upper, self.upper - o.lower)
+
+    def __rsub__(self, other: float) -> Interval:
+        return Interval.point(other) - self
+
+    def __mul__(self, other: Interval | float) -> Interval:
+        o = other if isinstance(other, Interval) else Interval.point(other)
+        prods = (
+            self.lower * o.lower,
+            self.lower * o.upper,
+            self.upper * o.lower,
+            self.upper * o.upper,
+        )
+        return Interval(min(prods), max(prods))
+
+    def __rmul__(self, other: float) -> Interval:
+        return self.__mul__(other)
+
+    def __truediv__(self, other: Interval | float) -> Interval:
+        o = other if isinstance(other, Interval) else Interval.point(other)
+        if o.lower <= 0.0 <= o.upper:
+            raise ZeroDivisionError(f"Cannot divide by interval {o} containing zero")
+        inv = (1.0 / o.upper, 1.0 / o.lower)
+        prods = (
+            self.lower * inv[0],
+            self.lower * inv[1],
+            self.upper * inv[0],
+            self.upper * inv[1],
+        )
+        return Interval(min(prods), max(prods))
+
+    def __rtruediv__(self, other: float) -> Interval:
+        return Interval.point(other) / self
+
+    def __pow__(self, exponent: int) -> Interval:
+        if not isinstance(exponent, int):
+            raise TypeError("Interval exponentiation currently supports exact integers")
+        if exponent == 0:
+            return Interval(1.0, 1.0)
+        if exponent < 0:
+            return Interval(1.0, 1.0) / (self ** (-exponent))
+        if exponent % 2 == 1:
+            return Interval(self.lower**exponent, self.upper**exponent)
+        # Even power
+        if self.lower >= 0:
+            return Interval(self.lower**exponent, self.upper**exponent)
+        if self.upper <= 0:
+            return Interval(self.upper**exponent, self.lower**exponent)
+        return Interval(0.0, max(self.lower**exponent, self.upper**exponent))
+
+    def __neg__(self) -> Interval:
+        return Interval(-self.upper, -self.lower)
+
+    def intersection(self, other: Interval) -> Interval | None:
+        """Return the intersection of two intervals, or None if disjoint."""
+        lo = max(self.lower, other.lower)
+        hi = min(self.upper, other.upper)
+        if lo <= hi:
+            return Interval(lo, hi)
+        return None
+
+    def __and__(self, other: Interval) -> Interval | None:
+        return self.intersection(other)
+
+    def hull(self, other: Interval) -> Interval:
+        """Return the interval hull (smallest enclosing interval) of self and other."""
+        return Interval(min(self.lower, other.lower), max(self.upper, other.upper))
+
+    def __or__(self, other: Interval) -> Interval:
+        return self.hull(other)
+
+    @classmethod
+    def enclose_samples(cls, values: Iterable[float]) -> Interval:
+        """Construct the minimal interval enclosing all sampled points."""
+        vals = list(values)
+        if not vals:
+            raise ValueError("Cannot enclose empty collection of samples")
+        return cls(min(vals), max(vals))
+

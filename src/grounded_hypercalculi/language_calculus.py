@@ -63,6 +63,76 @@ class Grammar:
     def add_rule(self, lhs: Symbol, rhs: Sequence[Symbol]) -> None:
         self.rules.append(ProductionRule(lhs, tuple(rhs)))
 
+    @property
+    def non_terminals(self) -> frozenset[Symbol]:
+        """Set of all non-terminal symbols appearing in the grammar."""
+        nts: set[Symbol] = {self.start_symbol}
+        for r in self.rules:
+            nts.add(r.lhs)
+            for s in r.rhs:
+                if not s.is_terminal:
+                    nts.add(s)
+        return frozenset(nts)
+
+    @property
+    def terminals(self) -> frozenset[Symbol]:
+        """Set of all terminal symbols appearing in grammar production rules."""
+        ts: set[Symbol] = set()
+        for r in self.rules:
+            for s in r.rhs:
+                if s.is_terminal:
+                    ts.add(s)
+        return frozenset(ts)
+
+    def derive(self, max_depth: int = 5) -> set[tuple[Symbol, ...]]:
+        """Generate all terminal sentences derivable within max_depth steps.
+
+        Uses breadth-first search over leftmost sentential forms.
+        """
+        if max_depth < 0:
+            raise ValueError("max_depth must be nonnegative")
+        sentences: set[tuple[Symbol, ...]] = set()
+        frontier: set[tuple[Symbol, ...]] = {(self.start_symbol,)}
+        visited: set[tuple[Symbol, ...]] = set()
+
+        for _ in range(max_depth + 1):
+            next_frontier: set[tuple[Symbol, ...]] = set()
+            for form in frontier:
+                if form in visited:
+                    continue
+                visited.add(form)
+
+                if all(s.is_terminal for s in form):
+                    sentences.add(form)
+                    continue
+
+                # Expand first non-terminal (leftmost derivation)
+                for i, sym in enumerate(form):
+                    if not sym.is_terminal:
+                        for rule in self.rules:
+                            if rule.lhs == sym:
+                                new_form = form[:i] + rule.rhs + form[i + 1:]
+                                if new_form not in visited:
+                                    next_frontier.add(new_form)
+                        break
+            frontier = next_frontier
+            if not frontier:
+                break
+
+        return sentences
+
+    def derives_sentence(
+        self,
+        sentence: Sequence[Symbol],
+        max_depth: int = 10,
+    ) -> bool:
+        """Decide whether a terminal sentence is derivable within max_depth steps."""
+        target = tuple(sentence)
+        if any(not s.is_terminal for s in target):
+            raise ValueError("Target sentence must contain only terminal symbols")
+        return target in self.derive(max_depth=max_depth)
+
+
 
 @dataclass(frozen=True)
 class QuotationNode:
