@@ -16,6 +16,20 @@ class PagesBuildError(RuntimeError):
     pass
 
 
+FAMILY = ROOT / "docs" / "family"
+
+
+def install_family(output: Path) -> None:
+    """Place the family explorer at <site>/family/ however docs were laid out."""
+    dest = output / "family"
+    if not dest.is_dir():
+        if not FAMILY.is_dir():
+            raise PagesBuildError(f"family explorer source missing: {FAMILY}")
+        shutil.copytree(FAMILY, dest)
+    if not (dest / "family-graph.json").is_file():
+        raise PagesBuildError("family explorer is missing family-graph.json")
+
+
 def build(output: Path) -> Path:
     """Build into a new or empty directory and return the output path."""
     output = output.resolve()
@@ -32,6 +46,7 @@ def build(output: Path) -> Path:
     shutil.copytree(DOCS, output)
     if not (output / "index.html").is_file():
         raise PagesBuildError("built pages artifact is missing index.html")
+    install_family(output)
     return output
 
 
