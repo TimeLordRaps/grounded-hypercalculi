@@ -2,25 +2,45 @@
 
 from __future__ import annotations
 
+import operator
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Sequence, Set, Tuple
 
 
+def _nonnegative_integer(value: object) -> int:
+    """Accept exact integer-protocol values, never floats, strings, or booleans."""
+    is_boolean = isinstance(value, bool) or (
+        type(value).__module__ == "numpy" and type(value).__name__ in {"bool", "bool_"}
+    )
+    if is_boolean or isinstance(value, float):
+        raise TypeError("Ordinal coefficients must be exact nonnegative integers")
+    try:
+        result = operator.index(value)
+    except TypeError as error:
+        raise TypeError("Ordinal coefficients must be exact nonnegative integers") from error
+    if result < 0:
+        raise ValueError("Ordinal coefficients must be nonnegative")
+    return result
+
+
 @dataclass(frozen=True)
 class BoundedOrdinal:
-    """An ordinal below omega^omega represented in Cantor Normal Form as polynomial coefficients."""
+    """An ordinal below omega^omega in Cantor normal form.
+
+    Coefficients use the exact integer protocol and are copied to an immutable
+    tuple of Python integers. Negative, boolean, and inexact inputs are rejected.
+    """
     coefficients: Tuple[int, ...] = ()
 
     def __post_init__(self) -> None:
-        coeffs = list(self.coefficients)
+        coeffs = [_nonnegative_integer(value) for value in self.coefficients]
         while coeffs and coeffs[-1] == 0:
             coeffs.pop()
         object.__setattr__(self, "coefficients", tuple(coeffs))
 
     @classmethod
     def from_int(cls, n: int) -> BoundedOrdinal:
-        if n < 0:
-            raise ValueError("Ordinal must be non-negative")
+        n = _nonnegative_integer(n)
         return cls((n,) if n > 0 else ())
 
     @property

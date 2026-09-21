@@ -7,6 +7,10 @@
 
 A unified formal framework and computational library implementing extended mathematical, symbolic, structural, and computational calculi.
 
+**Preprint:** *The Six Grounded Hypercalculi: An Integrated Framework for Relativized Oracles, Metasystem Reflection, and Hypercomputation* ([PDF](paper/paper.pdf), [source](paper/paper.tex)) --- version 0.2.0, September 18, 2026.
+
+The paper states each calculus's capability boundary explicitly, including the points at which a component returns a deterministic placeholder rather than a decision. Receipt emission under the Verifier Standard is specified there as the intended verification interface and is **not implemented**; no result in the paper rests on it.
+
 ---
 
 ## 1. The Six Formal Calculi
