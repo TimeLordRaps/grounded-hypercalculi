@@ -1,5 +1,5 @@
 {
-  "digest": "4e39902413e9f723e93321074544958f5e413d648ae5faefd0c490b29a51bd22",
+  "digest": "e34b070f6865a14d22a63114446bf45a4c9fcb73f5d9fe5e1612c202963661e4",
   "edges": [
     {
       "evidence": [
@@ -129,11 +129,30 @@
     },
     {
       "evidence": [
-        "README.md"
+        "README.md",
+        "DEFINITIONAL_SPACE.md"
       ],
       "kind": "citation",
       "source": "hypergrammar",
       "target": "grounded-hyperset-theory",
+      "weight": 2
+    },
+    {
+      "evidence": [
+        "DEFINITIONAL_SPACE.md"
+      ],
+      "kind": "citation",
+      "source": "hypergrammar",
+      "target": "hyperethics",
+      "weight": 1
+    },
+    {
+      "evidence": [
+        "DEFINITIONAL_SPACE.md"
+      ],
+      "kind": "citation",
+      "source": "hypergrammar",
+      "target": "hyperlogic",
       "weight": 1
     },
     {
@@ -141,6 +160,7 @@
         "README.md",
         "PAPER.md",
         "AGENTS.md",
+        "DEFINITIONAL_SPACE.md",
         "TIME.md",
         "docs/prerequisites/00_learning_path.md",
         "docs/prerequisites/21_hypertopologies.md",
@@ -149,17 +169,45 @@
       "kind": "citation",
       "source": "hypergrammar",
       "target": "hypermath",
-      "weight": 7
+      "weight": 8
+    },
+    {
+      "evidence": [
+        "DEFINITIONAL_SPACE.md"
+      ],
+      "kind": "citation",
+      "source": "hypergrammar",
+      "target": "hyperphysics",
+      "weight": 1
+    },
+    {
+      "evidence": [
+        "DEFINITIONAL_SPACE.md"
+      ],
+      "kind": "citation",
+      "source": "hypergrammar",
+      "target": "hyperstratum",
+      "weight": 1
+    },
+    {
+      "evidence": [
+        "DEFINITIONAL_SPACE.md"
+      ],
+      "kind": "citation",
+      "source": "hypergrammar",
+      "target": "metamathethicology",
+      "weight": 1
     },
     {
       "evidence": [
         "README.md",
+        "DEFINITIONAL_SPACE.md",
         "TIME.md"
       ],
       "kind": "citation",
       "source": "hypergrammar",
       "target": "ordinatics",
-      "weight": 2
+      "weight": 3
     },
     {
       "evidence": [
@@ -2415,7 +2463,7 @@
         }
       ],
       "counts": {
-        "layers": 16,
+        "layers": 4,
         "modules": 8,
         "symbols": 32,
         "tracked_files": 178
@@ -2478,19 +2526,7 @@
         "L0_ground.hm",
         "L1_relations.hm",
         "L2_operations.hm",
-        "L3_ordinatics.hm",
-        "references/precursor/hypermath/spec/axioms.hm",
-        "references/precursor/hypermath/spec/casting.hm",
-        "references/precursor/hypermath/spec/links.hm",
-        "references/precursor/hypermath/spec/verify.hm",
-        "references/precursor/hypermath_form/ground.hm",
-        "references/precursor/hypermath_form/kernel.hm",
-        "references/precursor/hypermath_form/operations.hm",
-        "references/precursor/hypermath_form/ordinatics.hm",
-        "references/precursor/hypermath_form/relations.hm",
-        "references/precursor/hypermath_frame/spec/kernel.hm",
-        "references/precursor/hypermath_frame/spec/ordinatics.hm",
-        "references/precursor/hypermath_frame/spec/stdlib/hyperordinal.hm"
+        "L3_ordinatics.hm"
       ],
       "module": "hypermath_foundations",
       "package": "hypermath-foundations",
@@ -3165,7 +3201,7 @@
         "layers": 0,
         "modules": 7,
         "symbols": 20,
-        "tracked_files": 229
+        "tracked_files": 230
       },
       "docs": [
         "docs/deep_research/Universal Recursive Systems Research Protocol.md",
@@ -3204,6 +3240,7 @@
       "repo_url": "https://github.com/TimeLordRaps/hypergrammar",
       "root_docs": [
         "AGENTS.md",
+        "DEFINITIONAL_SPACE.md",
         "HUMANS.md",
         "PAPER.md",
         "TIME.md"
@@ -4725,7 +4762,7 @@
   "schema": "vstd-family-graph/1",
   "totals": {
     "edges_by_kind": {
-      "citation": 51,
+      "citation": 56,
       "dependency": 3,
       "import": 4
     },
