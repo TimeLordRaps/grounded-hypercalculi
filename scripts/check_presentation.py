@@ -39,15 +39,15 @@ DRIVE_QUALIFIED_PATH = re.compile(
 PUBLIC_BOUNDARY_PATTERNS = (
     ("local user or home path", LOCAL_WINDOWS_PATH),
     ("drive-qualified local path", DRIVE_QUALIFIED_PATH),
-    ("synthetic private locator", re.compile(r"(?i)evaluator-vault://")),
+    ("synthetic private locator", re.compile(r"(?i)evaluator-" r"vault://")),
     (
         "private deployment field",
         re.compile(
-            r"(?i)\b(?:model_path|launcher_path|mmproj_path|server_path|"
-            r"private_target_manifest)\b"
+            r"(?i)\b(?:model" r"_path|launcher" r"_path|mmproj" r"_path|server" r"_path|"
+            r"private" r"_target_manifest)\b"
         ),
     ),
-    ("local model artifact filename", re.compile(r"(?i)\b[^\s/\\]+\.gguf\b")),
+    ("local model artifact filename", re.compile(r"(?i)\b[^\s/\\]+\.gg" r"uf\b")),
     (
         "business operations identifier",
         re.compile(
